@@ -1,0 +1,83 @@
+  <modification>
+  <code>8767474543232678</code>
+  <id>876542235232678</id>
+  <name>OpenCart 2 Recursive Category Image Finder</name>
+  <version>1.0</version>
+  <author>Adam Lanning-Molyneux</author>
+  <link>https://cyberfoxdigital.co.uk</link>
+  <file path="catalog/model/catalog/category.php">
+    <operation>
+      <search><![CDATA[return $query->row;]]></search>
+      <add position="replace" index="1"><![CDATA[
+    //Try subcats
+    $category = $query->row;
+
+    if(empty($category['image'])){
+      if($subCategories = $this->getCategories($category['category_id'])){
+        foreach($subCategories as $subCategory){
+          if(!empty($subCategory['image'])){
+            $category['image'] = $subCategory['image'];
+            break;
+          }
+        }
+      }
+    }
+
+    //No luck with subcats, let's try products
+    if(empty($category['image'])){
+      $product_query = $this->db->query("SELECT image FROM " . DB_PREFIX . "product p LEFT JOIN " . DB_PREFIX . "product_to_category p2c ON (p.product_id = p2c.product_id) LEFT JOIN " . DB_PREFIX . "product_to_store p2s ON (p.product_id = p2s.product_id) WHERE p2c.category_id = '" . (int)$category['category_id'] . "' AND p.image != '' AND p2s.store_id = '" . (int)$this->config->get('config_store_id') . "' AND p.status = '1' ORDER BY p.sort_order, p.price DESC");
+      
+      if($product_query->num_rows){
+        foreach($product_query->rows as $product){
+          if(!empty($product['image'])){
+            $category['image'] = $product['image'];
+            break;
+          }
+        }
+      }
+    }
+
+    return $category;
+  ]]></add>
+    </operation>
+    <operation>
+      <search><![CDATA[return $query->rows;]]></search>
+      <add position="replace" index="1"><![CDATA[
+    $categories = array();
+
+    foreach($query->rows as $category){
+
+      //Try subcats
+      if(empty($category['image'])){
+        if($subCategories = $this->getCategories($category['category_id'])){
+          foreach($subCategories as $subCategory){
+            if(!empty($subCategory['image'])){
+              $category['image'] = $subCategory['image'];
+              break;
+            }
+          }
+        }
+      }
+
+      //No luck with subcats, let's try products
+      if(empty($category['image'])){
+        $product_query = $this->db->query("SELECT image FROM " . DB_PREFIX . "product p LEFT JOIN " . DB_PREFIX . "product_to_category p2c ON (p.product_id = p2c.product_id) LEFT JOIN " . DB_PREFIX . "product_to_store p2s ON (p.product_id = p2s.product_id) WHERE p2c.category_id = '" . (int)$category['category_id'] . "' AND p.image != '' AND p2s.store_id = '" . (int)$this->config->get('config_store_id') . "' AND p.status = '1' ORDER BY p.sort_order, p.price DESC");
+
+        if($product_query->num_rows){
+          foreach($product_query->rows as $product){
+            if(!empty($product['image'])){
+              $category['image'] = $product['image'];
+              break;
+            }
+          }
+        }
+      }
+
+      $categories[] = $category;
+    }
+
+    return $categories;
+  ]]></add>
+    </operation>
+  </file>
+</modification>
